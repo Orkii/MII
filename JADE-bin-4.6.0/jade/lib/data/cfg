@@ -15,3 +15,16 @@ Create{
 Name:Vipechka
 }Create
 }ShopsM
+
+StorageM{
+Name:mainStorage
+}StorageM
+
+CarM{
+Create{
+Name:Car1
+}Create
+Create{
+Name:Car2
+}Create
+}CarM
