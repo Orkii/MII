@@ -1,0 +1,17 @@
+ContainerNames{
+Shops:Shops
+Cars:Cars
+Storage:Storage
+}ContainerNames
+
+ShopsM{
+Create{
+Name:Bread
+}Create
+Create{
+Name:Planeta
+}Create
+Create{
+Name:Vipechka
+}Create
+}ShopsM

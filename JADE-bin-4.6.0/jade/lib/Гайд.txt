@@ -1,0 +1,1 @@
+java jade.Boot -container -agents Bob:Agents.Monitor   Запуск контейнера с агентом// Начало всего
