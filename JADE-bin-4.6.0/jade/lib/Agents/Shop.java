@@ -15,9 +15,14 @@ import jade.domain.JADEAgentManagement.JADEManagementOntology;
 
 
 public class Shop extends jade.core.Agent {
+    public int id;//position in matrix of distance from 1 (0 is storage)
+
     protected void setup() { 
-        System.out.println("Hello World. Im shop");
-        System.out.println("My name is "+ getLocalName()); 
+        Object[] args = getArguments();
+
+        id = (int) (args[0]);
+
+        System.out.println("Hello World. Im shop. My name is " + getLocalName() + ". My id = " + id + "\n");
         
     }
 }

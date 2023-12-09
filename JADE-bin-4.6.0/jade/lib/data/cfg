@@ -6,12 +6,15 @@ Storage:Storage
 
 ShopsM{
 Create{
+id:1
 Name:Bread
 }Create
 Create{
+id:2
 Name:Planeta
 }Create
 Create{
+id:3
 Name:Vipechka
 }Create
 }ShopsM

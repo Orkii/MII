@@ -28,6 +28,8 @@ public class CfgReader {
     public static jade.wrapper.AgentContainer storageContainer;
 
 
+    public static float[][] distance;
+
     private static void cfgContainerLoad(String temp){
         String[] subStr = temp.split("\n");
 
@@ -111,39 +113,74 @@ public class CfgReader {
     } 
     private static void cfgShopsLoad(String temp){
         while (temp.contains("Create{")){
-            
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
             }
-            
             int q1 = temp.indexOf("Create{");
             int q2 = temp.indexOf("}Create")  + "}Create".length();
-            
             String tempCreate = temp.substring(q1, q2);
             temp = temp.replace(tempCreate, "");
-
             String[] subStr = tempCreate.split("\n");
-
+            String agName = "";
+            Object[] agArgs = new Object[1];
             for (String str : subStr) {
                 if (str.contains("Name:")){
-                    String agName = str.replace("Name:", "");
-
-                    try {
-                        shopsContainer.createNewAgent(agName, "Agents.Shop", null).start();
-                         
-                    } catch (StaleProxyException e) {
-                        System.out.println("Smth go WRON whil create Shop agent " + agName);
-                        e.printStackTrace();
-                    }
+                    agName = str.replace("Name:", "");
                 }
-            }       
+                else if (str.contains("id:")){
+                    agArgs[0] = Integer.valueOf(str.replace("id:", "").trim());
+                    System.out.println("Parse is DONE");
+                }       
+            }
+            try {
+                shopsContainer.createNewAgent(agName, "Agents.Shop", agArgs).start();
+                     
+            } catch (StaleProxyException e) {
+                System.out.println("Smth go WRON whil create Shop agent " + agName);
+                e.printStackTrace();
+            }
         }
         System.out.println("Shop end");
     }
+    
+    private static void loadDistance(){
+        System.out.println("Try read Distance file."); 
+        Path filePath = Path.of("D:\\MII\\JADE-bin-4.6.0\\jade\\lib\\data\\Paths");
+        String content = "";
+        try {
+            content = Files.readString(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String[] a = content.split("\n");
+        String[][] b = new String[a.length][];
+        for (int i = 0; i < a.length; i++) {
+            b[i] = a[i].split(" ");
+        }
+        
 
+        distance = new float[b.length][b.length];
+        for (int i = 0; i < b.length; i++){
+            for (int j = 0; j < b.length; j++){
+                distance[i][j] = Float.parseFloat(b[i][j]);
+            }   
+        }
+        System.out.println("Distance in float = ");
+        for (int i = 0; i < b.length; i++){
+            for (int j = 0; j < b.length; j++){
+                System.out.print(distance[i][j] + " ");
+            }   
+            System.out.println("");
+        }
 
+        System.out.println("Distance = \n " + content);
+    }
+    
+    
+    
+    
     public static void readCfg(){
         System.out.println("Try read file."); 
         Path filePath = Path.of("D:\\MII\\JADE-bin-4.6.0\\jade\\lib\\data\\cfg");
@@ -195,7 +232,9 @@ public class CfgReader {
             cfgCarLoad(temp);
         }
 
-
+        {
+            loadDistance();
+        }
     }
 
 
