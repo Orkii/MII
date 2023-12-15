@@ -1,33 +1,59 @@
 ContainerNames{
-Shops:Shops
 Cars:Cars
-Storage:Storage
+Orders:Orders
 }ContainerNames
 
-ShopsM{
-Create{
-id:1
-Name:Bread
-}Create
-Create{
-id:2
-Name:Planeta
-}Create
-Create{
-id:3
-Name:Vipechka
-}Create
-}ShopsM
 
-StorageM{
-Name:mainStorage
-}StorageM
+
+
+
+
+
+OrderM{
+	Create{
+		id:1
+		Name:Apple
+		ShopId:2
+		TimeStart:0
+		TimeEnd:40
+		Size:5
+		GoodType:1
+	}Create
+
+	Create{
+		id:2
+		Name:Apple
+		ShopId:1
+		TimeStart:0
+		TimeEnd:50
+		Size:5
+		GoodType:1
+	}Create
+
+	Create{
+		id:3
+		Name:Apple
+		ShopId:1
+		TimeStart:0
+		TimeEnd:70
+		Size:5
+		GoodType:1
+	}Create
+
+}OrderM
 
 CarM{
-Create{
-Name:Car1
-}Create
-Create{
-Name:Car2
-}Create
+	Create{
+		id:0
+		loadCapacity:10
+		Name:Car1
+	}Create
+
+	C1reate{
+		id:1
+		loadCapacity:15
+		Name:Car2
+	}C1reate
+
 }CarM
+
