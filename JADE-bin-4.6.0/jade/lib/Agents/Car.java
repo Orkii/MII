@@ -1,11 +1,14 @@
 package Agents;
 
 
-
+import Helper.CfgReader;
+import Helper.Pai;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.lang.acl.ACLMessage;
 import java.util.ArrayList;
+
+
 
 public class Car extends jade.core.Agent {
     public int id;
@@ -18,17 +21,11 @@ public class Car extends jade.core.Agent {
     final int TIME_TO_LOADING = 2;
     final int TIME_TO_DELIVER = 1;
     final int TIME_IN_DAY = 50;
-
     final int TOTAL_AMOUNT_OF_GOOD_TYPE = 10;
+    final int BIGGETS_TIME_GAP = 8;
 
-    class Pai{
-        public Pai(int a, int b){
-            L = a;
-            R = b;
-        }
-        public int L;
-        public int R;
-    }
+
+
     class MyOrder {
         public int id;
         public String name;
@@ -120,6 +117,13 @@ public class Car extends jade.core.Agent {
             return totalEmptyCell;
         }
         public Boolean checkForType(MyOrder order){//True = Можно добавить   False = Нельзя добавить
+            for (MyOrder or : orders) {
+                for (int i = 0; i < CfgReader.notMix.length; i++) {
+                    if ((CfgReader.notMix[i].L == or.goodType) && (CfgReader.notMix[i].R == order.goodType)) return false;
+                    if ((CfgReader.notMix[i].R == or.goodType) && (CfgReader.notMix[i].L == order.goodType)) return false;  
+                }
+
+            }
             return true;
         }
         public MyOrder[] ordersWithThisType(int ty){
@@ -132,21 +136,26 @@ public class Car extends jade.core.Agent {
             }
             MyOrder[] or = new MyOrder[amount];
             for (int i = 0,j=0; i < amount;j++){
+                //System.out.println("i = " + i);
+                //System.out.println("j = " + j);
                 if (orders.get(j).goodType==ty){
+
                     or[i]=orders.get(j);
+                    i++;
                 }
             }
             return or;
 
         }
-        public Boolean isAnyAtThisTime(int t){
+        public MyOrder isAnyAtThisTime(int t){
             for (MyOrder or : orders) {
-                if (or.time == t) return true;
+                if (or.time == t) return or;
             }
-            return false;
+            return null;
         }
 
         public void destroy(){
+            System.out.println("DESTROY");
             for (MyOrder or : orders) {
                 sendAnwser(or.name, false);
             }
@@ -160,23 +169,13 @@ public class Car extends jade.core.Agent {
             return -1;
         }
         public void remove(MyOrder[] ors){
+            System.out.println("REMOVE");
             for (MyOrder order : ors) {
                 sendAnwser(order.name, false);
                 load-=order.size;
                 orders.remove(order);
             }            
         }
-    }
-
-    protected float niceF(ArrayList<Travel> tr_, int beforeTime){//Функция эффективности до определённого времени
-        float nice = 0f;
-        for (Travel tr : tr_) {
-            if (tr.timeStart < beforeTime){
-                nice += tr.sizeBeforeTime(beforeTime) / (tr.emptyTimeBeforeTime(beforeTime) + 1);
-            }
-        }
-
-        return nice;
     }
 
 
@@ -204,6 +203,7 @@ public class Car extends jade.core.Agent {
         // Обработка информационного сообщения
         String text = msg.getContent();
         System.out.println(getLocalName() + " GET: " + text);
+        
         if (text.toLowerCase().contains("show all")){
             System.out.println(this);
         }
@@ -211,8 +211,19 @@ public class Car extends jade.core.Agent {
         if (msg.getPerformative() == ACLMessage.REQUEST) {//Время получено
             MyOrder order = new MyOrder();
             order.fromString(text);
-            Boolean fit = tryFit(order);
+            Boolean fit = tryFitNew(order);
             sendAnwser(order.name, fit);
+        }
+        else if(msg.getPerformative() == ACLMessage.CANCEL){
+            try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
+            System.out.println("TRAVELS = " + travels.size());
+            for (int index = 0; index < travels.size(); index++) {
+                Travel tr = travels.get(index);
+                for (MyOrder or : tr.orders) {
+                    System.out.println(getLocalName() + " В поездке N:" + index + " отвозит " + or.name + " время = " + or.time);
+                }
+            }
+            travels.clear();
         }
 
 
@@ -227,8 +238,7 @@ public class Car extends jade.core.Agent {
                 for (; i < travels.size(); i++) {
                     travels.get(temp).destroy();
                     travels.remove(temp);
-                }
-                
+                }   
             }
         }  
     }
@@ -248,40 +258,52 @@ public class Car extends jade.core.Agent {
 
     protected Boolean tryFitAtTime(MyOrder order, int time){
         int size = travels.size();
-        //System.out.println("0");
+
+        //System.out.println(getLocalName() + " " + order.name + "  tryFitAtTime" + time);
+
         for (int i = 0; i < size; i++) {//Смотрим существующие путешествия
-            //System.out.println("1");
+
             Travel tr = travels.get(i);
             if (tr.timeStart+TIME_TO_LOADING > time) continue;
-            //System.out.println(order.name);
-            //System.out.println("tr.load + order.size = " + (tr.load + order.size));
-            //System.out.println("loadCapacity = " + loadCapacity);
+
             if (tr.load + order.size > loadCapacity) {
-                System.out.println("Типа");
+                //System.out.println("Типа");
                 int adsadsda = tr.anyTravelWithSameShopType(order);//Вдруг можно кого-нибудь выкинуть
                 MyOrder[] a = tr.ordersWithThisType(order.goodType);
                 if (a.length == 0) continue;
+                //System.out.println("Типа1");
+                int mas = 0;
+                for (int j = 0; j < a.length; j++) {
+                    mas += a[j].size;
+                }
+                if (mas+order.size > loadCapacity) continue;
+
                 for (int k = 0; k < TOTAL_AMOUNT_OF_GOOD_TYPE; k++){
                     if (k == order.goodType) continue;
                     MyOrder[] ors = tr.ordersWithThisType(k);
                     if (ors.length < a.length+1){
                         tr.remove(ors);
                         order.time = a[0].time;
+                        tr.addOrder(order);
+                        System.out.println(getLocalName() + " " );
+                        System.out.println(getLocalName() + " " + order.name + "  STATE1");
                         return true;
                     }
                 }
-                
 
                 if (adsadsda == -1) continue;
             }
+
+            
             if (tr.checkForType(order) == false) continue;
             {//Ели есть тот же магазин, то добавляем
-                //System.out.println("2");
+                System.out.println("2");
                 int adsadsda = tr.anyTravelWithSameShopType(order);
                 if (adsadsda != -1){
                     order.time = adsadsda;
                     tr.addOrder(order);
                     order.deliver = tr;
+                    System.out.println(getLocalName() + " " + order.name + "  STATE2");
                     return true;
                 }
             }
@@ -297,6 +319,7 @@ public class Car extends jade.core.Agent {
                         order.time = time;
                         tr.addOrder(order);
                         order.deliver = tr;
+                        System.out.println(getLocalName() + " " + order.name + "  STATE3");
                         return true;
                     }
                 }                
@@ -308,20 +331,24 @@ public class Car extends jade.core.Agent {
                     order.time = time;
                     tr.addOrder(order);
                     order.deliver = tr;
+                    System.out.println(getLocalName() + " " + order.name + "  STATE4");
                     return true;
                 }
             }
-            //System.out.println("9");
 
-            //order.time = time;
-            //tr.addOrder(order);
-            //order.deliver = tr;
-            //checkForCollision();
-            return false;
         }
+        //Новое путешествие
+        Travel tr = new Travel();
+        tr.timeStart = travels.getLast().timeEnd()+1;
+
+        if (tr.timeStart + TIME_TO_LOADING + TIME_TO_DELIVER >=TIME_IN_DAY) return false;
+        if (time < tr.timeStart)    return false;
         
-        
-        return false;
+        tr.addOrder(order);
+        order.deliver = tr;
+        order.time = time;
+        System.out.println(getLocalName() + " " + order.name + "  STATE5");
+        return true;
     }
 
     protected Boolean tryFit(MyOrder order){
@@ -357,84 +384,156 @@ public class Car extends jade.core.Agent {
             //System.out.println("-5");
             System.out.println(getLocalName() + " Было пусто " + order.name);
             fitEmpty(order, startFind);
+            //sendAnwser(order.name, true);
             return true;
         }
-        //System.out.println("-6");
-        //System.out.println("startFind = " + startFind);
-        //System.out.println("endFind = " + endFind);
         for (int i = startFind; i < endFind; i++) {
             if (tryFitAtTime(order, i) == true){
                 return true;
             }
-        }
-        //System.out.println("-7");
-
-
-
-
-
-
-
-        return false;
-        /*
-        if (travels.isEmpty() == true){//Если нет отправок
-            if (fitEmpty(order) == true){
-                System.out.println(getLocalName() + " Было пусто " + order.name);
-                return true;
-            }
-        }
-
-        if (travels.get(0).timeStart > order.timeStart){//Этот товар может уехать раньше, чем первое путешествие
-            System.out.println("State 2");
-            for (Travel travel : travels) {
-                travel.destroy();
-            }
-            travels = new ArrayList<Travel>();
-            Travel firstTravel = new Travel();
-            firstTravel.timeStart = order.timeStart - TIME_TO_LOADING - TIME_TO_DELIVER;
-            if (firstTravel.timeStart < 0) firstTravel.timeStart = 0;
-            order.time = order.timeStart;
-            firstTravel.orders.add(order);
-            return true;
-        }
-        {//Пытаемя засунуть к тому же магазину
-            if (fitSameShop(order) == true){
-                System.out.println(getLocalName() + " Засунули в тот же магазин " + order.name);
-                return true;
-            }
-        }
-        System.out.println("State 4");
-        for (int i = 0; i < travels.size(); i++) {
-            if(travels.get(i).checkForType(order) == true) {//Попытка засунуть в первый попавшийся
-                if (travels.get(i).load + order.size <= loadCapacity){//Если там есть место
-                    System.out.println("Записал " + order.name);
-                    travels.get(i).addOrder(order);
-                    checkForCollision();
-                    return true;
-                   
-                }
-            }
-        }
-        {//Делаем новый путешествие
-            Travel tr = new Travel();
-            tr.timeStart=travels.get(travels.size()-1).timeEnd();//И начинается оно после последнего
-            System.out.println("Записал " + order.name);
-            tr.addOrder(order);
-            if (tr.timeEnd() > TIME_IN_DAY){//оказалось, что времени сегодня уже не хватает
-                return false;
-            }
             
-
         }
-        System.out.println("State 5");
-        
-        return false;
-        */
+        System.out.println(getLocalName() + " " + order.name + " RETURN STATE FALSE");
+        //System.out.println("-7");
+          return false;
+
     }
 
 
 
+    protected Boolean tryFitNew(MyOrder order){
+        int startFind = order.timeStart;
+        int endFind = order.timeEnd;
 
+
+
+        //System.out.println("-0");
+        if (order.size > loadCapacity){
+            return false;
+        }
+
+
+        if (startFind > endFind){
+            //System.out.println("-1");
+            System.out.println("Заказ начинают принимать позже конца.");
+            throw new RuntimeException("Заказ начинают принимать позже конца.");
+        }
+        //System.out.println("TIME_IN_DAY = " + TIME_IN_DAY);
+        if (endFind > TIME_IN_DAY){
+            //System.out.println("-2");
+            endFind = TIME_IN_DAY;
+        }
+
+        if (startFind < TIME_TO_DELIVER + TIME_TO_LOADING){
+            //System.out.println("-3");
+            startFind = TIME_TO_DELIVER + TIME_TO_LOADING;
+        }
+        
+        if (travels.isEmpty() == true){//Первый
+            //System.out.println("-5");
+            System.out.println(getLocalName() + " Было пусто " + order.name);
+            fitEmpty(order, startFind);
+            //sendAnwser(order.name, true);
+            System.out.println("CREATE Empety. + ");
+            return true;
+        }
+        
+        for (int time = startFind; time < endFind; time++) {
+            int badEndingCount = 0;
+            for (int i = 0; i < travels.size(); i++) {
+                Travel tr = travels.get(i);
+                if (tr.checkForType(order) == false) {
+                    //badEndingCount++;
+                    continue;
+                }
+                if (tr.load + order.size > loadCapacity) {
+                    //badEndingCount++;
+                    continue;
+                }
+                if (tr.timeStart > time) continue;
+                if (tr.timeStart + BIGGETS_TIME_GAP < time) {
+                    badEndingCount++; 
+                    continue;
+                }
+                
+                
+                MyOrder or = tr.isAnyAtThisTime(time); 
+                if (or != null){
+                    //System.out.println("AAAAAAAAAA 1");
+                    if (or.shopId == order.shopId) {
+                        //System.out.println("AAAAAAAAAA 2");
+                        tr.addOrder(order);
+                        order.deliver = tr;
+                        order.time = time;
+                        System.out.println("CREATE 1. + " + time);
+                        return true;
+                        //sendAnwser(order.name, true);;
+                    }
+                }
+                if (or == null){
+                    //System.out.println("AAAAAAAAAA 3");
+                    Boolean evBAD = false;
+
+                    for (int j = 0; j < travels.size(); j++) {
+                        if (i == j) continue;
+
+                        if (travels.get(i).timeStart < travels.get(j).timeStart){
+                            if (time < travels.get(j).timeStart){
+                                continue;
+                            }
+                            else{
+                                evBAD = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    //if (evBAD == false){
+                    //    System.out.println("CREATE NEW TRAVEL 2 . + " + time);
+//
+                    //    //travels.add(tr);
+                    //    tr.addOrder(order);
+                    //    order.deliver = tr;
+                    //    order.time = time;
+                    //    return true;
+                    //}
+                    //sendAnwser(order.name, true);; 
+                }                
+            }
+            //System.out.println("badEndingCount = " + badEndingCount + " travels.size() " + travels.size());
+
+             
+            int latestTime = 0;
+            for (int i = 0; i < travels.size(); i++) {
+                if (travels.get(i).timeEnd() > latestTime){
+                    latestTime = travels.get(i).timeEnd();
+                }
+            }
+            if (latestTime + 2 < time){
+                System.out.println("CREATE NEW TRAVEL 1 ."  + time);
+                Travel tr11 = new Travel();
+                tr11.timeStart = time - TIME_TO_DELIVER - TIME_TO_LOADING;
+
+                if (latestTime < time){
+                    travels.add(tr11);
+                    tr11.addOrder(order);
+                    order.deliver = tr11;
+                    order.time = time;
+
+                    return true;
+                }
+            }
+
+            
+        }
+
+
+        //Travel tr = new Travel();
+        //tr.timeStart = time - TIME_TO_DELIVER - TIME_TO_LOADING;
+        //tr.timeStart = time - TIME_TO_DELIVER - TIME_TO_LOADING;
+        
+        return false;//Время кончилось
+    }
 
  
 

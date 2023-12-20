@@ -1,1 +1,3 @@
-java jade.Boot -container -agents Bob:Agents.Monitor   Запуск контейнера с агентом// Начало всего
+Запуск в разных CMD. Корень в JADE-bin-4.6.0\jade\lib
+java jade.Boot -gui
+a.bat

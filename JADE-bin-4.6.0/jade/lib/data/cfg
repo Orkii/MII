@@ -5,55 +5,49 @@ Orders:Orders
 
 
 
-
-
-
+Mix{
+1:2
+3:4
+1:3
+}Mix
 
 OrderM{
 	Create{
 		id:1
 		Name:Apple
-		ShopId:2
+		ShopId:1
 		TimeStart:0
 		TimeEnd:40
-		Size:5
-		GoodType:1
+		Size:1
+		GoodType:2
 	}Create
 
 	Create{
 		id:2
 		Name:Apple
-		ShopId:1
+		ShopId:2
 		TimeStart:0
 		TimeEnd:50
-		Size:5
+		Size:1
 		GoodType:1
 	}Create
 
-	Create{
-		id:3
-		Name:Apple
-		ShopId:1
-		TimeStart:0
-		TimeEnd:70
-		Size:5
-		GoodType:1
-	}Create
 
 }OrderM
 
 CarM{
 	Create{
 		id:0
-		loadCapacity:10
+		loadCapacity:2
 		Name:Car1
 	}Create
 
 	C1reate{
 		id:1
-		loadCapacity:15
+		loadCapacity:6
 		Name:Car2
 	}C1reate
+
 
 }CarM
 

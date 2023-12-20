@@ -1,6 +1,7 @@
 package Helper;
 
 import Agents.*;
+import Helper.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,12 +20,14 @@ import jade.core.Runtime;
 
 
 public class CfgReader {
-
+    public static Pai[] notMix;
     public static String CarsContainerName;
     public static String OrdersContainerName; 
 
     public static jade.wrapper.AgentContainer carsContainer;
     public static jade.wrapper.AgentContainer ordersContainer;
+    
+    public static ArrayList<String> agents = new ArrayList<String>(); 
 
     private static void cfgContainerLoad(String temp){
         String[] subStr = temp.split("\n");
@@ -49,6 +52,30 @@ public class CfgReader {
         ordersContainer = instance.createAgentContainer(prof2);
     } 
     
+    private static void cfgLoadMix(String temp){
+        String[] subStr = temp.split("\n");
+        Pai[] pairs = new Pai[subStr.length-1];
+        System.out.println("0 = " + (subStr.length-1));
+        System.out.println("1    = " + (pairs.length));
+        //System.out.println("1 = " + subStr[1]);
+        //System.out.println("2 = " + subStr[2]);
+        //System.out.println("Len = " + subStr.length);
+        for (int i = 1; i < subStr.length; i++) {
+            String[] a = subStr[i].split(":");
+            //System.out.println("1 = " + a[0]);
+            //System.out.println("2 = " + a[1]);
+            pairs[i-1] = new Pai(Integer.valueOf(a[0].trim()), Integer.valueOf(a[1].trim()));
+
+        }
+        for (int i = 0; i < pairs.length; i++) {
+            String[] a = subStr[i].split(":");
+            System.out.println("Some Info = " + pairs[i]);
+
+        }
+
+        notMix = pairs;
+    }
+
     private static void cfgLoadState(String temp, Monitor monitor){
         String[] subStr = temp.split("\n");
 
@@ -94,6 +121,7 @@ public class CfgReader {
                 }
             } 
             try {
+                agents.add(agName);
                 ordersContainer.createNewAgent(agName, "Agents.Order", agArgs).start();          
             } catch (StaleProxyException e) {
                 System.out.println("Smth go WRON whil create Order agent " + agName);
@@ -127,6 +155,7 @@ public class CfgReader {
                 }
             } 
             try {
+                agents.add(agName);
                 carsContainer.createNewAgent(agName, "Agents.Car", agArgs).start();         
             } catch (StaleProxyException e) {
                 System.out.println("Smth go WRON whil create Shop agent " + agName);
@@ -146,7 +175,13 @@ public class CfgReader {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
+        {
+            int p1 = content.indexOf("Mix{");
+            int p2 = content.indexOf("}Mix");
+            String temp = content.substring(p1, p2);
+            content = content.replace(temp, "");
+            cfgLoadMix(temp);
+        }
         {//Name of Containers
             int p1 = content.indexOf("ContainerNames{");
             int p2 = content.indexOf("}ContainerNames");

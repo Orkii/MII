@@ -17,9 +17,17 @@ import java.util.ArrayList;
     
 import jade.domain.AMSService;
 import jade.domain.FIPAAgentManagement.*;
+import jade.content.AgentAction;
 
+import jade.domain.JADEAgentManagement.KillAgent;
 
+import jade.lang.acl.ACLMessage;
+import jade.content.lang.sl.SLCodec;
+import jade.content.onto.basic.Action;
+import jade.core.behaviours.OneShotBehaviour;
 
+//import jade.domain.JADEAgentManagement;
+//import jade.domain;
 
 public class Order extends jade.core.Agent{
     final int TIME_TO_WAIT_BETWEEN_RECEIVE = 100;
@@ -34,6 +42,8 @@ public class Order extends jade.core.Agent{
     public float size;
     public int goodType;  
     public boolean isINeedTryFindCar = true;
+
+    Boolean die = false;
 
     boolean haveTime = false;
     boolean tryFindAnother = false;
@@ -81,17 +91,8 @@ public class Order extends jade.core.Agent{
         }
         System.out.println("Заказ = " + this);
 
-        while (isINeedTryFindCar == true){
-            for (int i=0; i<cars.length;i++){
-                while (haveTime == true){//Если у нас есть машина, то ждём пока нас выпрут
-                    System.out.println(getLocalName() + " Записался");
-                    handleMessage(getMessage());
-                }
-                sendAsk(cars[i]);
-                ACLMessage msg = getMessage();
-                handleMessage(msg);
-            }
-        }
+        doTryFindPlaceInCar();
+
         /*
         for (int i=0; i<cars.length;i++){
 
@@ -167,8 +168,8 @@ public class Order extends jade.core.Agent{
         }
 
         */
-
-
+        //System.out.println(getLocalName() + " ЧЁ");
+        getMessage();
 
     }
     @Override
@@ -182,6 +183,25 @@ public class Order extends jade.core.Agent{
                 goodType ;
     }
 
+    protected void doTryFindPlaceInCar(){
+        System.out.println(getLocalName() + " doTryFindPlaceInCar");
+        while (isINeedTryFindCar == true){
+            for (int i=0; i<cars.length;i++){
+                if (die == true) return;
+                while (haveTime == true){//Если у нас есть машина, то ждём пока нас выпрут
+                    System.out.println(getLocalName() + " Записался");
+                    handleMessage(getMessage());
+                    if (die == true) return;
+                }
+                System.out.println(getLocalName() + " Хочу записаться");
+                sendAsk(cars[i]);
+                ACLMessage msg = getMessage();
+                handleMessage(msg);
+                if (die == true) return;
+            }
+            
+        }
+    }
 
 
     protected void handleMessage(ACLMessage message) {//Меняет haveTime
@@ -195,7 +215,26 @@ public class Order extends jade.core.Agent{
             haveTime = true;
         }
         else if (message.getPerformative() == ACLMessage.DISCONFIRM){
+        
             haveTime = false;
+        }
+        else if(message.getPerformative() == ACLMessage.CANCEL){
+            System.out.println(getLocalName() + " Time =  " + haveTime);
+            if (haveTime == true){
+                try { Thread.sleep(1000); } catch (InterruptedException e) { e.printStackTrace(); }
+                System.out.println(getLocalName() + " доставлен");
+                isINeedTryFindCar = false;
+                die = true;
+                this.doDelete();
+            }
+            else{
+                isINeedTryFindCar = false;
+            }
+
+        }
+        else if (message.getPerformative() == ACLMessage.INFORM){
+            isINeedTryFindCar = true;
+            doTryFindPlaceInCar();
         }
     }
 

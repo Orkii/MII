@@ -33,7 +33,6 @@ public class Monitor extends jade.core.Agent {
         catch (Exception e) {
             System.out.println("ERROR: cannot find container."); 
         }
-        invalidСombinations.init();
         //String containerName = "TestContainer";
         
 
@@ -45,11 +44,43 @@ public class Monitor extends jade.core.Agent {
         System.out.println("I am monitor. My name is "+ getLocalName() + ". Start all the things"); 
         System.out.println("Time = " + nowTime);
         
-        ACLMessage message = new ACLMessage(ACLMessage.INFORM);
-        message.addReceiver(new AID("mainStorage", AID.ISLOCALNAME));
-        send(message);
+        //ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+        //message.addReceiver(new AID("mainStorage", AID.ISLOCALNAME));
+        //send(message);
 
         
+        while (true){
+            try { Thread.sleep(2000); } catch (InterruptedException e) { e.printStackTrace(); }
+            
+            
+
+            
+            for (String ag : CfgReader.agents) {
+                ACLMessage message = new ACLMessage(ACLMessage.CANCEL);
+                message.addReceiver(new AID(ag, AID.ISLOCALNAME));
+                message.setContent("CANCEL");
+                try{
+                    send(message);
+                }
+                catch(Exception e){
+
+                }
+            }
+
+            try { Thread.sleep(3000); } catch (InterruptedException e) { e.printStackTrace(); }
+
+                for (String ag : CfgReader.agents) {
+                ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+                message.addReceiver(new AID(ag, AID.ISLOCALNAME));
+                message.setContent("INFORM");
+                try{
+                    send(message);
+                }
+                catch(Exception e){
+
+                }
+            }
+        }
         //while (true){
         //    ACLMessage msg = receive();
         //    if (msg != null) {
